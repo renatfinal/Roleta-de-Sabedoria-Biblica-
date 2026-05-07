@@ -1,0 +1,6 @@
+{
+  "name": "Círculo de Sabedoria Bíblico",
+  "description": "Um jogo de trivia bíblica com roleta para sortear quem responde as perguntas, geradas por inteligência artificial.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
