@@ -206,7 +206,14 @@ export default function Roulette({ players, setPlayers, onWinnerSelect, selected
           </div>
         </div>
 
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[16px] border-l-transparent border-r-[16px] border-r-transparent border-t-[28px] border-t-white drop-shadow-lg z-30 pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]"></div>
+        <div 
+          className="absolute -top-4 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[16px] border-l-transparent border-r-[16px] border-r-transparent border-t-[28px] drop-shadow-lg z-30 pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] transition-colors duration-75"
+          style={{ 
+            borderTopColor: players.length > 0 
+              ? COLORS[Math.floor(((360 - (rotation % 360)) % 360) / (360 / players.length)) % COLORS.length] 
+              : 'white' 
+          }}
+        ></div>
       </div>
 
       <div className="flex-1 flex flex-col">
