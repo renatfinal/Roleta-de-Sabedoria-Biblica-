@@ -97,12 +97,12 @@ export default function Roulette({ players, setPlayers, onWinnerSelect, selected
     let delta = targetAbsoluteRotation - currentMod;
     if (delta < 0) delta += 360;
 
-    const spins = 10;
+    const spins = 20;
     const totalRotation = rotation + delta + (360 * spins);
 
     const startRotation = rotation;
     let startTime: number | null = null;
-    const duration = 5000; // 5 seconds spin
+    const duration = 10000; // 10 seconds spin
     
     let lastTickAngle = startRotation;
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { GoogleGenAI, Type } from "@google/genai";
-import { Loader2, HelpCircle, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, HelpCircle, CheckCircle2, XCircle, History, X } from "lucide-react";
 import confetti from "canvas-confetti";
 import { Player } from "@/app/page";
 
@@ -26,8 +26,13 @@ export default function BibleTrivia({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [history, setHistory] = useState<QuestionData[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   const generateQuestion = async () => {
+    if (qa) {
+      setHistory(prev => [qa, ...prev].slice(0, 5));
+    }
     setLoading(true);
     setError("");
     setQa(null);
@@ -40,12 +45,17 @@ export default function BibleTrivia({
       }
 
       const ai = new GoogleGenAI({ apiKey });
+      
       const bookContext = selectedBook 
         ? `A pergunta DEVE ser especificamente sobre o livro de ${selectedBook}.` 
-        : `A pesquisa ou contexto DEVE basear-se na Bíblia Católica (com os 73 livros, incluindo os deuterocanônicos como Tobias, Judite, 1 e 2 Macabeus, Sabedoria, Eclesiástico/Sirácida e Baruque).`;
+        : `Escolha aleatoriamente um livro ou tema diferente de toda a Bíblia Católica (composta por 73 livros). É CRUCIAL variar com livros históricos, sapienciais, proféticos, deuterocanônicos e epístolas. Não limite-se apenas a Gênesis, Êxodo ou os quatro Evangelhos.`;
         
-      const prompt = `Gere uma pergunta de múltipla escolha sobre a Bíblia. ${bookContext} O nível de dificuldade deve ser variado (de histórias clássicas até fatos menos conhecidos).
-A resposta correta deve ser indicada pelo answerIndex (0 a 3). O campo explanation deve conter uma breve e gentil explicação de onde está na Bíblia e por que é a resposta.`;
+      const prompt = `Gere uma pergunta INÉDITA de múltipla escolha sobre a Bíblia. 
+Contexto: ${bookContext}
+O nível de dificuldade deve ser variado.
+A resposta correta deve ser indicada pelo answerIndex (0 a 3). 
+O campo explanation deve conter a referência bíblica exata e uma breve explicação gentil.
+(Semente de aleatoriedade interna para forçar variação: ${Math.random()})`;
       
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
@@ -91,9 +101,59 @@ A resposta correta deve ser indicada pelo answerIndex (0 a 3). O campo explanati
   };
 
   return (
-    <div className="flex flex-col flex-1 h-full justify-center min-h-[400px] bg-white/10 backdrop-blur-3xl border border-white/20 p-8 md:p-10 rounded-[40px] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]">
-      {!qa && !loading && (
-        <div className="text-center space-y-6">
+    <div className="relative flex flex-col flex-1 h-full justify-center min-h-[400px] bg-white/10 backdrop-blur-3xl border border-white/20 p-8 md:p-10 rounded-[40px] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] overflow-hidden">
+      
+      {!showHistory && !loading && (
+        <div className="absolute top-6 right-6 md:top-8 md:right-8 z-10">
+          <button 
+            onClick={() => setShowHistory(true)} 
+            className="w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-slate-400 hover:text-white transition-all active:scale-95"
+            title="Ver Histórico"
+          >
+            <History size={20} />
+          </button>
+        </div>
+      )}
+
+      {showHistory ? (
+        <div className="flex flex-col h-full space-y-6 flex-1 w-full max-h-[600px] animate-in fade-in zoom-in-95 duration-300">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-2xl font-serif text-white">Histórico das Perguntas</h3>
+            <button 
+              onClick={() => setShowHistory(false)} 
+              className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-slate-400 hover:text-white transition-all active:scale-95"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+            {history.length === 0 ? (
+              <div className="text-center py-12 flex flex-col items-center justify-center space-y-4 text-white/50 h-full">
+                <History size={48} className="opacity-20" />
+                <p>Nenhuma pergunta no histórico.</p>
+              </div>
+            ) : (
+              history.map((item, idx) => (
+                <div key={idx} className="p-5 bg-black/20 border border-white/5 rounded-2xl space-y-3">
+                  <p className="text-white/90 font-serif text-lg leading-snug">{item.question}</p>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 size={18} className="text-emerald-500 shrink-0 mt-0.5" />
+                    <p className="text-emerald-400 text-sm font-medium leading-tight">
+                      {item.options[item.answerIndex]}
+                    </p>
+                  </div>
+                  <p className="text-white/40 text-xs italic border-t border-white/5 pt-2 mt-2">
+                    {item.explanation}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
+          {!qa && !loading && (
+            <div className="text-center space-y-6">
           <div className="bg-white/10 p-6 inline-flex rounded-full border border-white/10">
             <HelpCircle size={56} className="text-white/60" strokeWidth={1.5} />
           </div>
@@ -214,6 +274,8 @@ A resposta correta deve ser indicada pelo answerIndex (0 a 3). O campo explanati
             </div>
           )}
         </div>
+      )}
+      </>
       )}
     </div>
   );
