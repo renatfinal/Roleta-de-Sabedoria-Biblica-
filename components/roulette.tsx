@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Player } from "@/app/page";
-import { Trash2, UserPlus, Play } from "lucide-react";
+import { Trash2, UserPlus, Play, RotateCcw } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 interface RouletteProps {
@@ -14,12 +14,12 @@ interface RouletteProps {
 }
 
 const COLORS = [
-  "#f59e0b", // amber-500
-  "#6366f1", // indigo-500
-  "#10b981", // emerald-500
-  "#f43f5e", // rose-500
-  "#0ea5e9", // cyan-500
-  "#8b5cf6", // violet-500
+  "#FFD700", // Vibrant Gold
+  "#FF0055", // Vibrant Pink
+  "#00FF66", // Vibrant Green
+  "#00BFFF", // Vibrant Blue
+  "#AA00FF", // Vibrant Purple
+  "#FF5500", // Vibrant Orange
 ];
 
 export default function Roulette({ players, setPlayers, onWinnerSelect, selectedBook, setSelectedBook }: RouletteProps) {
@@ -226,22 +226,36 @@ export default function Roulette({ players, setPlayers, onWinnerSelect, selected
             />
           </div>
           <div className="flex flex-col gap-3 shrink-0">
-            <button
-              onClick={spinRoulette}
-              disabled={isSpinning || players.length === 0}
-              title="Girar Roleta"
-              className="w-[52px] h-[52px] bg-gradient-to-br from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 border border-amber-500/50 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl flex items-center justify-center text-white transition-all shadow-lg hover:shadow-amber-500/25 active:scale-95"
-            >
-              {isSpinning ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-              ) : (
-                <Play className="fill-current w-6 h-6 ml-1" />
-              )}
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  if (confirm("Tem certeza que deseja zerar todas as pontuações?")) {
+                    setPlayers(players.map(p => ({ ...p, score: 0 })));
+                  }
+                }}
+                disabled={players.length === 0}
+                title="Zerar Pontuações"
+                className="w-[52px] h-[52px] bg-slate-700/50 hover:bg-rose-500/80 border border-white/10 hover:border-rose-500/50 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl flex items-center justify-center text-white transition-all active:scale-95"
+              >
+                <RotateCcw size={22} />
+              </button>
+              <button
+                onClick={spinRoulette}
+                disabled={isSpinning || players.length === 0}
+                title="Girar Roleta"
+                className="w-[52px] h-[52px] bg-gradient-to-br from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 border border-amber-500/50 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl flex items-center justify-center text-white transition-all shadow-lg hover:shadow-amber-500/25 active:scale-95"
+              >
+                {isSpinning ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                ) : (
+                  <Play className="fill-current w-6 h-6 ml-1" />
+                )}
+              </button>
+            </div>
             <button 
               onClick={addPlayer}
               title="Adicionar Jogador"
-              className="w-[52px] h-[52px] bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl flex items-center justify-center text-white transition-colors active:scale-95"
+              className="w-full h-[52px] bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl flex items-center justify-center text-white transition-colors active:scale-95"
             >
               <UserPlus size={24} />
             </button>
