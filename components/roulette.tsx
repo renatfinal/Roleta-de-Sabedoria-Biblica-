@@ -88,11 +88,19 @@ export default function Roulette({ players, setPlayers, onWinnerSelect, selected
     const midAngle = winnerIndex * sliceAngle + sliceAngle / 2;
     // Add jitter so it doesn't land exactly in the center of the slice
     const jitter = (Math.random() - 0.5) * sliceAngle * 0.8;
-    const targetRotationDelta = (360 * 10) + (360 - midAngle + jitter);
     
-    const startRotation = rotation % 360; 
-    const totalRotation = startRotation + targetRotationDelta;
+    // We want the wheel to spin such that `midAngle` ends up exactly at the top (0 degrees).
+    // Our top pointer is at 0 degrees, and the wheel rotates clockwise.
+    const targetAbsoluteRotation = 360 - midAngle + jitter;
+    
+    const currentMod = rotation % 360; 
+    let delta = targetAbsoluteRotation - currentMod;
+    if (delta < 0) delta += 360;
 
+    const spins = 10;
+    const totalRotation = rotation + delta + (360 * spins);
+
+    const startRotation = rotation;
     let startTime: number | null = null;
     const duration = 5000; // 5 seconds spin
     
@@ -240,7 +248,7 @@ export default function Roulette({ players, setPlayers, onWinnerSelect, selected
           </div>
         </div>
 
-        <ul className="space-y-3 max-h-[220px] overflow-y-auto pr-2">
+        <ul className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
           <AnimatePresence>
             {players.map((player, idx) => {
               const bgColors = ["bg-amber-500", "bg-indigo-500", "bg-emerald-500", "bg-rose-500", "bg-cyan-500", "bg-violet-500"];
@@ -252,7 +260,7 @@ export default function Roulette({ players, setPlayers, onWinnerSelect, selected
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className={`flex justify-between items-center p-3 rounded-2xl border ${currentWinner === player.id ? 'bg-indigo-500/30 border-indigo-500/50 shadow-lg scale-[1.02]' : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20'} transition-all overflow-hidden`}
+                  className={`flex justify-between items-center p-2 px-3 rounded-xl border ${currentWinner === player.id ? 'bg-indigo-500/30 border-indigo-500/50 shadow-lg scale-[1.02]' : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20'} transition-all overflow-hidden`}
                 >
                   <div className="flex items-center gap-3 truncate">
                     <div className={`w-8 h-8 rounded-full ${randomBg} flex items-center justify-center text-xs font-bold shrink-0 text-white`}>
