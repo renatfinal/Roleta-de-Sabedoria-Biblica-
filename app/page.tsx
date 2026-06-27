@@ -126,8 +126,8 @@ export default function Home() {
           </select>
         </div>
 
-        <header className="text-center mb-10 pt-4">
-           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white drop-shadow-sm">
+        <header className="text-center mb-10 pt-12 md:pt-4">
+           <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white drop-shadow-sm px-4">
              {strings[language].title} <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500">{strings[language].subtitle}</span>
            </h1>
            <p className="text-slate-400 text-xs md:text-sm uppercase tracking-[0.3em] font-semibold mt-2">
