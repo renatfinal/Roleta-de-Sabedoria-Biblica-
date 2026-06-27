@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Player } from "@/app/page";
 import { Trash2, UserPlus, Play, RotateCcw } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { Language } from "@/lib/questions";
 
 interface RouletteProps {
   players: Player[];
@@ -11,6 +12,7 @@ interface RouletteProps {
   onWinnerSelect: (id: string | null) => void;
   selectedBook: string;
   setSelectedBook: (book: string) => void;
+  language: Language;
 }
 
 const COLORS = [
@@ -22,7 +24,7 @@ const COLORS = [
   "#FF5500", // Vibrant Orange
 ];
 
-export default function Roulette({ players, setPlayers, onWinnerSelect, selectedBook, setSelectedBook }: RouletteProps) {
+export default function Roulette({ players, setPlayers, onWinnerSelect, selectedBook, setSelectedBook, language }: RouletteProps) {
   const [newPlayerName, setNewPlayerName] = useState("");
   const [isSpinning, setIsSpinning] = useState(false);
   const [currentWinner, setCurrentWinner] = useState<string | null>(null);
@@ -60,7 +62,7 @@ export default function Roulette({ players, setPlayers, onWinnerSelect, selected
 
   const addPlayer = () => {
     if (newPlayerName.trim()) {
-      setPlayers([...players, { id: Date.now().toString(), name: newPlayerName.trim(), score: 0 }]);
+      setPlayers([...players, { id: Date.now().toString(), name: newPlayerName.trim(), score: 0, level: 1, achievements: [] }]);
       setNewPlayerName("");
     }
   };
@@ -138,6 +140,59 @@ export default function Roulette({ players, setPlayers, onWinnerSelect, selected
     requestAnimationFrame(animate);
   };
 
+  const strings = {
+    pt: {
+      emptyRoulette: "Adicione jogadores para preencher a roleta",
+      scoreboard: "Placar dos Apóstolos",
+      playerPlaceholder: "Nome do Jogador...",
+      resetConfirm: "Tem certeza que deseja zerar todas as pontuações?",
+      resetTitle: "Zerar Pontuações",
+      spinTitle: "Girar Roleta",
+      addTitle: "Adicionar Jogador",
+      pts: "pts",
+      lvl: "Nível",
+      emptyPlayers: "Nenhum jogador adicionado.",
+      bookLabel: "Novo Desafio: Livro Opcional",
+      randomTheme: "Tema Aleatório (Bíblia Toda)",
+      oldTestament: "Antigo Testamento",
+      newTestament: "Novo Testamento"
+    },
+    en: {
+      emptyRoulette: "Add players to fill the roulette",
+      scoreboard: "Apostles' Scoreboard",
+      playerPlaceholder: "Player Name...",
+      resetConfirm: "Are you sure you want to reset all scores?",
+      resetTitle: "Reset Scores",
+      spinTitle: "Spin Roulette",
+      addTitle: "Add Player",
+      pts: "pts",
+      lvl: "Level",
+      emptyPlayers: "No players added.",
+      bookLabel: "New Challenge: Optional Book",
+      randomTheme: "Random Theme (Entire Bible)",
+      oldTestament: "Old Testament",
+      newTestament: "New Testament"
+    },
+    es: {
+      emptyRoulette: "Agrega jugadores para llenar la ruleta",
+      scoreboard: "Marcador de los Apóstoles",
+      playerPlaceholder: "Nombre del Jugador...",
+      resetConfirm: "¿Estás seguro de que deseas restablecer todas las puntuaciones?",
+      resetTitle: "Restablecer Puntuaciones",
+      spinTitle: "Girar Ruleta",
+      addTitle: "Añadir Jugador",
+      pts: "pts",
+      lvl: "Nivel",
+      emptyPlayers: "Ningún jugador añadido.",
+      bookLabel: "Nuevo Desafío: Libro Opcional",
+      randomTheme: "Tema Aleatorio (Toda la Biblia)",
+      oldTestament: "Antiguo Testamento",
+      newTestament: "Nuevo Testamento"
+    }
+  };
+
+  const t = strings[language];
+
   return (
     <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 md:p-8 rounded-3xl shadow-2xl flex flex-col flex-1 space-y-8">
       
@@ -196,7 +251,7 @@ export default function Roulette({ players, setPlayers, onWinnerSelect, selected
                  </svg>
               ) : (
                  <div className="w-full h-full flex items-center justify-center text-white/30 text-sm p-4 text-center">
-                   Adicione jogadores para preencher a roleta
+                   {t.emptyRoulette}
                  </div>
               )}
           </div>
@@ -218,7 +273,7 @@ export default function Roulette({ players, setPlayers, onWinnerSelect, selected
 
       <div className="flex-1 flex flex-col">
         <h2 className="text-sm font-bold text-amber-400 uppercase tracking-widest mb-4">
-          Placar dos Apóstolos
+          {t.scoreboard}
         </h2>
         
         <div className="flex gap-3 mb-6 items-end">
@@ -228,7 +283,7 @@ export default function Roulette({ players, setPlayers, onWinnerSelect, selected
               value={newPlayerName}
               onChange={(e) => setNewPlayerName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addPlayer()}
-              placeholder="Nome do Jogador..."
+              placeholder={t.playerPlaceholder}
               className="w-full h-[52px] bg-white/5 border border-white/10 rounded-xl px-4 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-colors"
             />
           </div>
@@ -236,12 +291,12 @@ export default function Roulette({ players, setPlayers, onWinnerSelect, selected
             <div className="flex gap-3">
               <button
                 onClick={() => {
-                  if (confirm("Tem certeza que deseja zerar todas as pontuações?")) {
+                  if (confirm(t.resetConfirm)) {
                     setPlayers(players.map(p => ({ ...p, score: 0 })));
                   }
                 }}
                 disabled={players.length === 0}
-                title="Zerar Pontuações"
+                title={t.resetTitle}
                 className="w-[52px] h-[52px] bg-slate-700/50 hover:bg-rose-500/80 border border-white/10 hover:border-rose-500/50 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl flex items-center justify-center text-white transition-all active:scale-95"
               >
                 <RotateCcw size={22} />
@@ -249,7 +304,7 @@ export default function Roulette({ players, setPlayers, onWinnerSelect, selected
               <button
                 onClick={spinRoulette}
                 disabled={isSpinning || players.length === 0}
-                title="Girar Roleta"
+                title={t.spinTitle}
                 className="w-[52px] h-[52px] bg-gradient-to-br from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 border border-amber-500/50 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl flex items-center justify-center text-white transition-all shadow-lg hover:shadow-amber-500/25 active:scale-95"
               >
                 {isSpinning ? (
@@ -261,7 +316,7 @@ export default function Roulette({ players, setPlayers, onWinnerSelect, selected
             </div>
             <button 
               onClick={addPlayer}
-              title="Adicionar Jogador"
+              title={t.addTitle}
               className="w-full h-[52px] bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl flex items-center justify-center text-white transition-colors active:scale-95"
             >
               <UserPlus size={24} />
@@ -287,11 +342,24 @@ export default function Roulette({ players, setPlayers, onWinnerSelect, selected
                     <div className={`w-8 h-8 rounded-full ${randomBg} flex items-center justify-center text-xs font-bold shrink-0 text-white`}>
                       {player.name.substring(0, 2).toUpperCase()}
                     </div>
-                    <span className="font-medium truncate">{player.name}</span>
+                    <div className="flex flex-col truncate">
+                       <div className="flex items-center gap-1.5">
+                         <span className="font-medium text-sm leading-tight truncate">{player.name}</span>
+                         {player.achievements && player.achievements.length > 0 && (
+                           <div className="flex -space-x-1" title={`${player.achievements.length} Conquistas`}>
+                             {player.achievements.slice(0, 3).map((ach, i) => (
+                               <span key={i} className="text-sm">🏆</span>
+                             ))}
+                             {player.achievements.length > 3 && <span className="text-[8px] ml-1 bg-white/20 px-1 rounded-full">+{player.achievements.length - 3}</span>}
+                           </div>
+                         )}
+                       </div>
+                       <span className="text-[10px] text-white/50 font-semibold uppercase">{t.lvl} {player.level || 1}</span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-4 shrink-0 pointer-events-auto ml-2">
                     <span className="font-mono font-bold text-slate-300">
-                      <span className={player.score > 0 ? "text-amber-400" : "text-slate-500"}>{player.score}</span> pts
+                      <span className={player.score > 0 ? "text-amber-400" : "text-slate-500"}>{player.score}</span> {t.pts}
                     </span>
                     <button 
                       onClick={() => removePlayer(player.id)}
@@ -305,7 +373,7 @@ export default function Roulette({ players, setPlayers, onWinnerSelect, selected
             })}
           </AnimatePresence>
           {players.length === 0 && (
-            <div className="text-center text-white/40 py-4">Nenhum jogador adicionado.</div>
+            <div className="text-center text-white/40 py-4">{t.emptyPlayers}</div>
           )}
         </ul>
       </div>
@@ -313,7 +381,7 @@ export default function Roulette({ players, setPlayers, onWinnerSelect, selected
       <div className="pt-4 border-t border-white/10 mt-auto">
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">
-            Novo Desafio: Livro Opcional
+            {t.bookLabel}
           </label>
           <div className="relative">
             <select
@@ -321,8 +389,8 @@ export default function Roulette({ players, setPlayers, onWinnerSelect, selected
               onChange={(e) => setSelectedBook(e.target.value)}
               className="w-full bg-white/5 border border-white/10 hover:border-white/20 rounded-2xl px-4 py-4 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all appearance-none cursor-pointer"
             >
-              <option value="" className="bg-slate-900 text-slate-300">Tema Aleatório (Bíblia Toda)</option>
-              <optgroup label="Antigo Testamento" className="bg-slate-900 text-slate-400 font-bold">
+              <option value="" className="bg-slate-900 text-slate-300">{t.randomTheme}</option>
+              <optgroup label={t.oldTestament} className="bg-slate-900 text-slate-400 font-bold">
                 <option value="Gênesis" className="text-slate-200">Gênesis</option>
                 <option value="Êxodo" className="text-slate-200">Êxodo</option>
                 <option value="Levítico" className="text-slate-200">Levítico</option>
@@ -370,7 +438,7 @@ export default function Roulette({ players, setPlayers, onWinnerSelect, selected
                 <option value="Zacarias" className="text-slate-200">Zacarias</option>
                 <option value="Malaquias" className="text-slate-200">Malaquias</option>
               </optgroup>
-              <optgroup label="Novo Testamento" className="bg-slate-900 text-slate-400 font-bold">
+              <optgroup label={t.newTestament} className="bg-slate-900 text-slate-400 font-bold">
                 <option value="Mateus" className="text-slate-200">Mateus</option>
                 <option value="Marcos" className="text-slate-200">Marcos</option>
                 <option value="Lucas" className="text-slate-200">Lucas</option>

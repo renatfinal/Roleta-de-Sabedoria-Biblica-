@@ -1,35 +1,55 @@
 "use client";
 
-import { useState } from "react";
-import { GoogleGenAI, Type } from "@google/genai";
-import { Loader2, HelpCircle, CheckCircle2, XCircle, History, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Loader2, HelpCircle, CheckCircle2, XCircle, History, X, BookOpen } from "lucide-react";
 import confetti from "canvas-confetti";
 import { Player } from "@/app/page";
+import { Language, LocalizedQuestion, getRandomQuestion } from "@/lib/questions";
 
-interface QuestionData {
-  question: string;
-  options: string[];
-  answerIndex: number;
-  explanation: string;
+interface BibleTriviaProps {
+  selectedPlayer: Player | null;
+  selectedBook: string;
+  onCorrectAnswer: () => void;
+  language: Language;
 }
 
 export default function BibleTrivia({ 
   selectedPlayer,
   selectedBook,
-  onCorrectAnswer
-}: { 
-  selectedPlayer: Player | null;
-  selectedBook: string;
-  onCorrectAnswer: () => void;
-}) {
-  const [qa, setQa] = useState<QuestionData | null>(null);
+  onCorrectAnswer,
+  language
+}: BibleTriviaProps) {
+  const [qa, setQa] = useState<LocalizedQuestion | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [history, setHistory] = useState<QuestionData[]>([]);
+  const [history, setHistory] = useState<LocalizedQuestion[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [answeredIds, setAnsweredIds] = useState<string[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  const generateQuestion = async () => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const saved = localStorage.getItem("bible-trivia-answered");
+      if (saved) {
+        try {
+          setAnsweredIds(JSON.parse(saved));
+        } catch (e) {
+          setAnsweredIds([]);
+        }
+      }
+      setIsLoaded(true);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem("bible-trivia-answered", JSON.stringify(answeredIds));
+    }
+  }, [answeredIds, isLoaded]);
+
+  const generateQuestion = () => {
     if (qa) {
       setHistory(prev => [qa, ...prev].slice(0, 5));
     }
@@ -38,77 +58,95 @@ export default function BibleTrivia({
     setQa(null);
     setSelectedIndex(null);
     
-    try {
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-      if (!apiKey) {
-        throw new Error("Chave da API do Gemini não está configurada.");
-      }
-
-      const ai = new GoogleGenAI({ apiKey });
+    // Simulate loading for better UX
+    setTimeout(() => {
+      const questionEntry = getRandomQuestion(language, answeredIds, selectedBook);
       
-      const bookContext = selectedBook 
-        ? `A pergunta DEVE ser especificamente sobre o livro de ${selectedBook}.` 
-        : `Escolha aleatoriamente um livro ou tema diferente de toda a Bíblia Católica (composta por 73 livros). É CRUCIAL variar com livros históricos, sapienciais, proféticos, deuterocanônicos e epístolas. Não limite-se apenas a Gênesis, Êxodo ou os quatro Evangelhos.`;
-        
-      const prompt = `Gere uma pergunta INÉDITA de múltipla escolha sobre a Bíblia. 
-Contexto: ${bookContext}
-O nível de dificuldade deve ser variado.
-A resposta correta deve ser indicada pelo answerIndex (0 a 3). 
-O campo explanation deve conter a referência bíblica exata e uma breve explicação gentil.
-(Semente de aleatoriedade interna para forçar variação: ${Math.random()})`;
-      
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          temperature: 0.8,
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              question: { type: Type.STRING, description: "A pergunta a ser feita" },
-              options: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Quatro opções de resposta" },
-              answerIndex: { type: Type.INTEGER, description: "O índice numérico (0 a 3) correspondente à resposta correta no array de opções" },
-              explanation: { type: Type.STRING, description: "Breve explicação sobre a resposta correta e a referência bíblica" }
-            },
-            required: ["question", "options", "answerIndex", "explanation"]
+      if (!questionEntry) {
+        if (answeredIds.length > 0) {
+          // If we run out of questions, clear history and try again
+          setAnsweredIds([]);
+          const freshQuestion = getRandomQuestion(language, [], selectedBook);
+          if (freshQuestion) {
+            setAnsweredIds([freshQuestion.id]);
+            setQa(freshQuestion.translations[language]);
+          } else {
+             setError(strings[language].noQuestions);
           }
-        } 
-      });
-
-      if (response.text) {
-        const parsed = JSON.parse(response.text);
-        if (parsed.question && Array.isArray(parsed.options) && typeof parsed.answerIndex === "number") {
-          setQa(parsed);
         } else {
-          throw new Error("Formato inválido retornado pela IA.");
+          setError(strings[language].noQuestions);
         }
       } else {
-        throw new Error("Nenhuma resposta gerada.");
+        setAnsweredIds(prev => [...prev, questionEntry.id]);
+        setQa(questionEntry.translations[language]);
       }
-    } catch (err: any) {
-      console.error(err);
-      if (err.message && err.message.includes("não está configurada")) {
-        setError("A chave do Gemini não foi encontrada. Certifique-se de que o Nível gratuito esteja ativado nos Segredos.");
-      } else if (err.status === 403 || err.message?.includes("PERMISSION_DENIED") || err.message?.includes("API_KEY_INVALID")) {
-        setError("Erro de permissão. Tente fechar e abrir o aplicativo, ou verifique se a chave padrão está habilitada. (Erro: " + err.message + ")");
-      } else {
-        setError("Houve um erro: " + err.message);
-      }
-    } finally {
       setLoading(false);
+    }, 600);
+  };
+
+  const strings = {
+    pt: {
+      historyTitle: "Histórico",
+      noHistory: "Nenhuma pergunta no histórico.",
+      turnOf: "Vez de",
+      title: "Quiz Bíblico",
+      desc: "Teste seus conhecimentos. O jogo funciona 100% offline com um banco interno.",
+      generateBtn: "NOVA PERGUNTA",
+      loading: "Sorteando pergunta...",
+      qAbout: "Pergunta sobre",
+      qDay: "Pergunta do Dia",
+      for: "para",
+      ref: "Referência Bíblica",
+      nextBtn: "PRÓXIMA",
+      noQuestions: "Não temos perguntas para este livro ainda. Tente outro!"
+    },
+    en: {
+      historyTitle: "History",
+      noHistory: "No questions in history.",
+      turnOf: "Turn of",
+      title: "Bible Quiz",
+      desc: "Test your knowledge. The game works 100% offline with an internal database.",
+      generateBtn: "NEW QUESTION",
+      loading: "Drawing question...",
+      qAbout: "Question about",
+      qDay: "Question of the Day",
+      for: "for",
+      ref: "Biblical Reference",
+      nextBtn: "NEXT",
+      noQuestions: "We don't have questions for this book yet. Try another!"
+    },
+    es: {
+      historyTitle: "Historial",
+      noHistory: "No hay preguntas en el historial.",
+      turnOf: "Turno de",
+      title: "Cuestionario Bíblico",
+      desc: "Pon a prueba tus conocimientos. Funciona 100% offline con una base de datos interna.",
+      generateBtn: "NUEVA PREGUNTA",
+      loading: "Sorteando pregunta...",
+      qAbout: "Pregunta sobre",
+      qDay: "Pregunta del Día",
+      for: "para",
+      ref: "Referencia Bíblica",
+      nextBtn: "SIGUIENTE",
+      noQuestions: "Aún no tenemos preguntas para este libro. ¡Intenta con otro!"
     }
   };
+
+  const t = strings[language];
 
   return (
     <div className="relative flex flex-col flex-1 h-full justify-center min-h-[400px] bg-white/10 backdrop-blur-3xl border border-white/20 p-8 md:p-10 rounded-[40px] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] overflow-hidden">
       
       {!showHistory && !loading && (
-        <div className="absolute top-6 right-6 md:top-8 md:right-8 z-10">
+        <div className="absolute top-6 right-6 md:top-8 md:right-8 z-10 flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/40 text-xs font-semibold">
+            <BookOpen size={14} />
+            <span>OFFLINE DB</span>
+          </div>
           <button 
             onClick={() => setShowHistory(true)} 
             className="w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-slate-400 hover:text-white transition-all active:scale-95"
-            title="Ver Histórico"
+            title={t.historyTitle}
           >
             <History size={20} />
           </button>
@@ -118,7 +156,7 @@ O campo explanation deve conter a referência bíblica exata e uma breve explica
       {showHistory ? (
         <div className="flex flex-col h-full space-y-6 flex-1 w-full max-h-[600px] animate-in fade-in zoom-in-95 duration-300">
           <div className="flex justify-between items-center mb-2">
-            <h3 className="text-2xl font-serif text-white">Histórico das Perguntas</h3>
+            <h3 className="text-2xl font-serif text-white">{t.historyTitle}</h3>
             <button 
               onClick={() => setShowHistory(false)} 
               className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-slate-400 hover:text-white transition-all active:scale-95"
@@ -130,7 +168,7 @@ O campo explanation deve conter a referência bíblica exata e uma breve explica
             {history.length === 0 ? (
               <div className="text-center py-12 flex flex-col items-center justify-center space-y-4 text-white/50 h-full">
                 <History size={48} className="opacity-20" />
-                <p>Nenhuma pergunta no histórico.</p>
+                <p>{t.noHistory}</p>
               </div>
             ) : (
               history.map((item, idx) => (
@@ -160,29 +198,29 @@ O campo explanation deve conter a referência bíblica exata e uma breve explica
           <div className="space-y-3">
              <h2 className="text-3xl font-serif text-white/90">
                {selectedPlayer ? (
-                 <span className="text-amber-400 font-bold">Vez de {selectedPlayer.name}!</span>
+                 <span className="text-amber-400 font-bold">{t.turnOf} {selectedPlayer.name}!</span>
                ) : (
-                 "Quiz Bíblico"
+                 t.title
                )}
              </h2>
              <p className="text-white/50 max-w-sm mx-auto text-lg leading-relaxed">
-               Deixe o Espírito guiar a próxima pergunta e teste os conhecimentos sobre a Palavra.
+               {t.desc}
              </p>
           </div>
           <button
              onClick={generateQuestion}
              className="bg-white text-slate-950 hover:bg-amber-50 h-14 px-8 rounded-2xl font-bold text-lg shadow-lg transition-all active:scale-95 mt-4"
           >
-             GERAR PERGUNTA
+             {t.generateBtn}
           </button>
-          {error && <p className="text-rose-400 text-sm mt-4">{error}</p>}
+          {error && <p className="text-rose-400 text-sm mt-4 max-w-md mx-auto">{error}</p>}
         </div>
       )}
 
       {loading && (
         <div className="text-center space-y-5">
           <Loader2 size={56} className="mx-auto text-amber-500 animate-spin" strokeWidth={1.5} />
-          <p className="text-slate-400 animate-pulse text-lg font-serif">Buscando sabedoria nas Escrituras...</p>
+          <p className="text-slate-400 animate-pulse text-lg font-serif">{t.loading}</p>
         </div>
       )}
 
@@ -191,7 +229,7 @@ O campo explanation deve conter a referência bíblica exata e uma breve explica
           <div className="space-y-4">
             <div className="flex justify-between items-center mb-6">
               <span className="px-3 py-1 bg-amber-500/20 text-amber-400 rounded-full text-[10px] font-bold uppercase border border-amber-500/30 tracking-wide">
-                Pergunta {selectedBook ? `sobre ${selectedBook}` : 'do Dia'} {selectedPlayer ? `para ${selectedPlayer.name}` : ''}
+                {selectedBook ? `${t.qAbout} ${selectedBook}` : t.qDay} {selectedPlayer ? `${t.for} ${selectedPlayer.name}` : ''}
               </span>
             </div>
             <h3 className="text-2xl md:text-3xl font-serif leading-[1.3] text-white/95">
@@ -255,7 +293,7 @@ O campo explanation deve conter a referência bíblica exata e uma breve explica
              <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
                <div className="p-6 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
                  <div className="flex items-center gap-2 mb-2">
-                   <span className="text-[10px] font-black text-amber-500 uppercase tracking-tighter">Referência Bíblica / Explicação</span>
+                   <span className="text-[10px] font-black text-amber-500 uppercase tracking-tighter">{t.ref}</span>
                    <div className="h-px flex-1 bg-amber-500/20"></div>
                  </div>
                  <p className="text-slate-300 text-sm italic leading-relaxed">
@@ -268,7 +306,7 @@ O campo explanation deve conter a referência bíblica exata e uma breve explica
                    onClick={generateQuestion}
                    className="flex-1 bg-white text-slate-950 h-14 rounded-2xl font-bold text-lg shadow-lg hover:bg-amber-50 transition-all active:scale-95"
                  >
-                   PRÓXIMA PERGUNTA
+                   {t.nextBtn}
                  </button>
                </div>
             </div>
